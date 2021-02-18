@@ -45,7 +45,14 @@ func (h *HandleHelper) IssueAccessToken(ctx context.Context, requester fosite.Ac
 
 	responder.SetAccessToken(token)
 	responder.SetTokenType("bearer")
-	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, h.AccessTokenLifespan, time.Now().UTC()))
+
+	accessTokenTTL := h.AccessTokenLifespan
+	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
+	if clientAccessTokenTTL != 0 {
+		accessTokenTTL = time.Duration(clientAccessTokenTTL) * time.Minute
+	}
+
+	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, accessTokenTTL, time.Now().UTC()))
 	responder.SetScopes(requester.GetGrantedScopes())
 	return nil
 }
@@ -54,5 +61,9 @@ func getExpiresIn(r fosite.Requester, key fosite.TokenType, defaultLifespan time
 	if r.GetSession().GetExpiresAt(key).IsZero() {
 		return defaultLifespan
 	}
-	return time.Duration(r.GetSession().GetExpiresAt(key).UnixNano() - now.UnixNano())
+	sessionDuration := time.Duration(r.GetSession().GetExpiresAt(key).UnixNano() - now.UnixNano())
+	if defaultLifespan < sessionDuration {
+		return defaultLifespan
+	}
+	return sessionDuration
 }

@@ -41,7 +41,7 @@ func TestGetExpiresIn(t *testing.T) {
 			fosite.AccessToken: now.Add(time.Hour),
 		},
 	})
-	assert.Equal(t, time.Hour, getExpiresIn(r, fosite.AccessToken, time.Millisecond, now))
+	assert.Equal(t, time.Hour, getExpiresIn(r, fosite.AccessToken, time.Hour, now))
 }
 
 func TestIssueAccessToken(t *testing.T) {
@@ -59,6 +59,10 @@ func TestIssueAccessToken(t *testing.T) {
 	}
 
 	areq.Session = &fosite.DefaultSession{}
+	areq.Client = &fosite.DefaultClient{
+		GrantTypes:     fosite.Arguments{"authorization_code", "refresh_token"},
+		AccessTokenTTL: 10,
+	}
 	for k, c := range []struct {
 		mock func()
 		err  error

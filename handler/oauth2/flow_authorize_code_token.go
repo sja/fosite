@@ -192,7 +192,14 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 
 	responder.SetAccessToken(access)
 	responder.SetTokenType("bearer")
-	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, c.AccessTokenLifespan, time.Now().UTC()))
+
+	accessTokenTTL := c.AccessTokenLifespan
+	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
+	if clientAccessTokenTTL != 0 {
+		accessTokenTTL = time.Duration(clientAccessTokenTTL) * time.Minute
+	}
+
+	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, accessTokenTTL, time.Now().UTC()))
 	responder.SetScopes(requester.GetGrantedScopes())
 	if refresh != "" {
 		responder.SetExtra("refresh_token", refresh)

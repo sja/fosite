@@ -144,9 +144,15 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 	} else if jwtSession.GetJWTClaims() == nil {
 		return "", "", errors.New("GetTokenClaims() must not be nil")
 	} else {
+		accessExpiry := jwtSession.GetExpiresAt(tokenType)
+		clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
+		if clientAccessTokenTTL != 0 {
+			accessExpiry = time.Now().Add(time.Duration(clientAccessTokenTTL) * time.Minute)
+		}
+
 		claims := jwtSession.GetJWTClaims().
 			With(
-				jwtSession.GetExpiresAt(tokenType),
+				accessExpiry,
 				requester.GetGrantedScopes(),
 				requester.GetGrantedAudience(),
 			).

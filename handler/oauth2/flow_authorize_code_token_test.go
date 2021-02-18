@@ -137,6 +137,34 @@ func TestAuthorizeCode_PopulateTokenEndpointResponse(t *testing.T) {
 						Request: fosite.Request{
 							Form: url.Values{},
 							Client: &fosite.DefaultClient{
+								GrantTypes:     fosite.Arguments{"authorization_code", "refresh_token"},
+								AccessTokenTTL: 10,
+								IDTokenTTL:     10,
+							},
+							GrantedScope: fosite.Arguments{"foo", "offline"},
+							Session:      &fosite.DefaultSession{},
+							RequestedAt:  time.Now().UTC(),
+						},
+					},
+					setup: func(t *testing.T, areq *fosite.AccessRequest) {
+						code, sig, err := strategy.GenerateAuthorizeCode(nil, nil)
+						require.NoError(t, err)
+						areq.Form.Add("code", code)
+
+						require.NoError(t, store.CreateAuthorizeCodeSession(nil, sig, areq))
+					},
+					description: "should pass with offline scope and refresh token",
+					check: func(t *testing.T, aresp *fosite.AccessResponse) {
+						assert.NotEmpty(t, aresp.GetExtra("expires_in"))
+						assert.Equal(t, int64(600), aresp.GetExtra("expires_in"))
+					},
+				},
+				{
+					areq: &fosite.AccessRequest{
+						GrantTypes: fosite.Arguments{"authorization_code"},
+						Request: fosite.Request{
+							Form: url.Values{},
+							Client: &fosite.DefaultClient{
 								GrantTypes: fosite.Arguments{"authorization_code", "refresh_token"},
 							},
 							GrantedScope: fosite.Arguments{"foo"},

@@ -50,6 +50,12 @@ type Client interface {
 
 	// GetAudience returns the allowed audience(s) for this client.
 	GetAudience() Arguments
+
+	// GetAccessTokenTTL returns access token ttl for this client.
+	GetAccessTokenTTL() int32
+
+	// GetIDTokenTTL returns id token ttl for this client.
+	GetIDTokenTTL() int32
 }
 
 // ClientWithSecretRotation extends Client interface by a method providing a slice of rotated secrets.
@@ -104,6 +110,8 @@ type DefaultClient struct {
 	Scopes         []string `json:"scopes"`
 	Audience       []string `json:"audience"`
 	Public         bool     `json:"public"`
+	AccessTokenTTL int32    `json:"access_token_ttl"`
+	IDTokenTTL     int32    `json:"id_token_ttl"`
 }
 
 type DefaultOpenIDConnectClient struct {
@@ -147,6 +155,14 @@ func (c *DefaultClient) GetRotatedHashes() [][]byte {
 
 func (c *DefaultClient) GetScopes() Arguments {
 	return c.Scopes
+}
+
+func (c *DefaultClient) GetAccessTokenTTL() int32 {
+	return c.AccessTokenTTL
+}
+
+func (c *DefaultClient) GetIDTokenTTL() int32 {
+	return c.IDTokenTTL
 }
 
 func (c *DefaultClient) GetGrantTypes() Arguments {
