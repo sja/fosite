@@ -174,6 +174,12 @@ func (f *Fosite) authorizeRequestParametersFromOpenIDConnectRequest(request *Aut
 }
 
 func (f *Fosite) validateAuthorizeRedirectURI(_ *http.Request, request *AuthorizeRequest) error {
+
+	// Redirect uri not validted for resource owner password flow
+	if request.Form.Get("grant_type") == "password" {
+		return nil
+	}
+
 	// Fetch redirect URI from request
 	rawRedirURI := request.Form.Get("redirect_uri")
 
