@@ -148,6 +148,9 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 
 		publicKeyPath := os.Getenv("PUBLIC_KEY_PATH")
 		dat, err := ioutil.ReadFile(publicKeyPath)
+		if err != nil {
+			return nil, err
+		}
 
 		verifyKey, err := jwt.ParseRSAPublicKeyFromPEM(dat)
 		if err != nil {
