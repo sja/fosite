@@ -75,7 +75,9 @@ func (h *DefaultJWTStrategy) ValidateAccessToken(ctx context.Context, _ fosite.R
 }
 
 func (h DefaultJWTStrategy) RefreshTokenSignature(token string) string {
-	return h.HMACSHAStrategy.RefreshTokenSignature(token)
+	// TODO Remove after migrate all verticals. JWT refrest tokens instead of opaque
+	//return h.HMACSHAStrategy.RefreshTokenSignature(token)
+	return h.signature(token)
 }
 
 func (h DefaultJWTStrategy) AuthorizeCodeSignature(token string) string {
@@ -83,11 +85,16 @@ func (h DefaultJWTStrategy) AuthorizeCodeSignature(token string) string {
 }
 
 func (h *DefaultJWTStrategy) GenerateRefreshToken(ctx context.Context, req fosite.Requester) (token string, signature string, err error) {
-	return h.HMACSHAStrategy.GenerateRefreshToken(ctx, req)
+	// TODO Remove after migrate all verticals. JWT refrest tokens instead of opaque
+	//return h.HMACSHAStrategy.GenerateRefreshToken(ctx, req)
+	return h.generateRefresh(ctx, req)
 }
 
 func (h *DefaultJWTStrategy) ValidateRefreshToken(ctx context.Context, req fosite.Requester, token string) error {
-	return h.HMACSHAStrategy.ValidateRefreshToken(ctx, req, token)
+	// TODO Remove after migrate all verticals. JWT refrest tokens instead of opaque
+	//return h.HMACSHAStrategy.ValidateRefreshToken(ctx, req, token)
+	_, err := validate(ctx, h.JWTStrategy, token)
+	return err
 }
 
 func (h *DefaultJWTStrategy) GenerateAuthorizeCode(ctx context.Context, req fosite.Requester) (token string, signature string, err error) {
@@ -162,6 +169,25 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 			).
 			WithScopeField(
 				h.ScopeField,
+			)
+
+		return h.JWTStrategy.Generate(ctx, claims.ToMapClaims(), jwtSession.GetJWTHeader())
+	}
+}
+
+func (h *DefaultJWTStrategy) generateRefresh(ctx context.Context, requester fosite.Requester) (string, string, error) {
+	if jwtSession, ok := requester.GetSession().(JWTSessionContainer); !ok {
+		return "", "", errors.Errorf("Session must be of type JWTSessionContainer but got type: %T", requester.GetSession())
+	} else if jwtSession.GetJWTClaims() == nil {
+		return "", "", errors.New("GetTokenClaims() must not be nil")
+	} else {
+		expiry := jwtSession.GetExpiresAt(fosite.RefreshToken)
+
+		claims := jwtSession.GetJWTClaims().
+			With(
+				expiry,
+				requester.GetGrantedScopes(),
+				requester.GetGrantedAudience(),
 			)
 
 		return h.JWTStrategy.Generate(ctx, claims.ToMapClaims(), jwtSession.GetJWTHeader())

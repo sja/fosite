@@ -22,6 +22,7 @@ require (
 	github.com/parnurzeal/gorequest v0.2.15
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/afero v1.3.2 // indirect
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c
