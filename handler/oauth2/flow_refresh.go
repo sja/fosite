@@ -132,6 +132,7 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 
 func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request fosite.AccessRequester) error {
 	var headers map[string]interface{}
+	var rfClaims *jwt.MapClaims
 	_, err := jwt.ParseWithClaims(token, new(jwt.MapClaims), func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, errors.Errorf("Unexpected signing method: %v", t.Header["alg"])
@@ -157,6 +158,10 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 			return nil, errors.New("cannot parse public key")
 		}
 		headers = t.Header
+		rfClaims, ok = t.Claims.(*jwt.MapClaims)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("Cannot parse claims %T", t.Claims))
+		}
 		request.GrantScope("offline")
 		return verifyKey, nil
 	})
@@ -166,8 +171,8 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 
 	// Create a new session as there is not original request in hydra becouse original request were created in account web
 	claims := fosite_jwt.JWTClaims{
-		Subject:   "unkown-subject-from-ac",
 		Audience:  []string{},
+		Issuer:    os.Getenv("URLS_SELF_ISSUER"),
 		IssuedAt:  time.Now().UTC(),
 		NotBefore: time.Now().UTC(),
 	}
@@ -180,6 +185,9 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 		ExpiresAt: map[fosite.TokenType]time.Time{
 			fosite.RefreshToken: time.Now().UTC().Add(c.RefreshTokenLifespan).Round(time.Second),
 		},
+	}
+	if sub, ok := (*rfClaims)["sub"].(string); ok {
+		session.Subject = sub
 	}
 
 	request.SetSession(session)
