@@ -43,6 +43,7 @@ type IDTokenClaims struct {
 	AuthenticationMethodsReferences     []string
 	CodeHash                            string
 	Extra                               map[string]interface{}
+	Rid                                 string
 }
 
 // ToMap will transform the headers to a map structure
@@ -66,6 +67,8 @@ func (c *IDTokenClaims) ToMap() map[string]interface{} {
 	} else {
 		ret["jti"] = uuid.New()
 	}
+
+	ret["rid"] = c.Rid
 
 	if len(c.Audience) > 0 {
 		ret["aud"] = c.Audience

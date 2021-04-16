@@ -72,6 +72,7 @@ type JWTClaims struct {
 	Scope      []string
 	Extra      map[string]interface{}
 	ScopeField JWTScopeFieldEnum
+	Rid        string
 }
 
 func (c *JWTClaims) With(expiry time.Time, scope, audience []string) JWTClaimsContainer {
@@ -124,6 +125,8 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 	} else {
 		ret["aud"] = []string{}
 	}
+
+	ret["rid"] = c.Rid
 
 	if !c.IssuedAt.IsZero() {
 		ret["iat"] = c.IssuedAt.Unix()
@@ -218,6 +221,10 @@ func (c *JWTClaims) FromMap(m map[string]interface{}) {
 				} else if c.ScopeField == JWTScopeFieldUnset {
 					c.ScopeField = JWTScopeFieldString
 				}
+			}
+		case "rid":
+			if s, ok := v.(string); ok {
+				c.Rid = s
 			}
 		default:
 			c.Extra[k] = v

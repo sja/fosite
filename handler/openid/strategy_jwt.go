@@ -56,6 +56,7 @@ type DefaultSession struct {
 	ExpiresAt map[fosite.TokenType]time.Time
 	Username  string
 	Subject   string
+	Rid       string
 }
 
 func NewDefaultSession() *DefaultSession {
@@ -235,7 +236,9 @@ func (h DefaultStrategy) GenerateIDToken(ctx context.Context, requester fosite.R
 	if claims.Issuer == "" {
 		claims.Issuer = h.Issuer
 	}
-
+	if claims.Rid == "" {
+		claims.Rid = sess.IDTokenClaims().Rid
+	}
 	// OPTIONAL. String value used to associate a Client session with an ID Token, and to mitigate replay attacks.
 	if nonce := requester.GetRequestForm().Get("nonce"); len(nonce) == 0 {
 	} else if len(nonce) > 0 && len(nonce) < h.MinParameterEntropy {

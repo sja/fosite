@@ -162,6 +162,8 @@ var jwtValidCaseWithClientAccessTokenTTL = func(tokenType fosite.TokenType) *fos
 	r.SetRequestedScopes([]string{"email", "offline"})
 	r.GrantScope("email")
 	r.GrantScope("offline")
+	r.SetRequestedAudience([]string{"group0"})
+	r.GrantAudience("group0")
 	return r
 }
 
