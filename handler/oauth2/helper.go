@@ -45,7 +45,6 @@ func (h *HandleHelper) IssueAccessToken(ctx context.Context, requester fosite.Ac
 
 	responder.SetAccessToken(token)
 	responder.SetTokenType("bearer")
-
 	accessTokenTTL := h.AccessTokenLifespan
 	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
 	if clientAccessTokenTTL != 0 {

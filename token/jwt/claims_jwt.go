@@ -119,6 +119,9 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 	} else {
 		ret["jti"] = uuid.New()
 	}
+	if c.Rid != "" {
+		ret["rid"] = c.Rid
+	}
 
 	if len(c.Audience) > 0 {
 		ret["aud"] = c.Audience
@@ -126,7 +129,6 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 		ret["aud"] = []string{}
 	}
 
-	ret["rid"] = c.Rid
 
 	if !c.IssuedAt.IsZero() {
 		ret["iat"] = c.IssuedAt.Unix()

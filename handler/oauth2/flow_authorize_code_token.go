@@ -192,7 +192,6 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 
 	responder.SetAccessToken(access)
 	responder.SetTokenType("bearer")
-
 	accessTokenTTL := c.AccessTokenLifespan
 	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
 	if clientAccessTokenTTL != 0 {

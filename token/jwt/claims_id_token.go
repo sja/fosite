@@ -68,7 +68,9 @@ func (c *IDTokenClaims) ToMap() map[string]interface{} {
 		ret["jti"] = uuid.New()
 	}
 
-	ret["rid"] = c.Rid
+	if c.Rid != "" {
+		ret["rid"] = c.Rid
+	}
 
 	if len(c.Audience) > 0 {
 		ret["aud"] = c.Audience
