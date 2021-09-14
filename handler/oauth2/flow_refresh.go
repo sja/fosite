@@ -133,6 +133,7 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request fosite.AccessRequester) error {
 	var headers map[string]interface{}
 	var rfClaims *jwt.MapClaims
+	var auth []string
 	_, err := jwt.ParseWithClaims(token, new(jwt.MapClaims), func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, errors.Errorf("Unexpected signing method: %v", t.Header["alg"])
@@ -147,6 +148,13 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 			return nil, errors.New("token expired")
 		}
 
+		authClaims := *claims
+		authInterface := authClaims["authorities"].([]interface{})
+		authSize := len(authInterface)
+		auth = make([]string, authSize)
+		for i, v := range authInterface {
+			auth[i] = v.(string)
+		}
 		publicKeyPath := os.Getenv("PUBLIC_KEY_PATH")
 		dat, err := ioutil.ReadFile(publicKeyPath)
 		if err != nil {
@@ -171,10 +179,11 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 
 	// Create a new session as there is not original request in hydra becouse original request were created in account web
 	claims := fosite_jwt.JWTClaims{
-		Audience:  []string{},
-		Issuer:    os.Getenv("URLS_SELF_ISSUER"),
-		IssuedAt:  time.Now().UTC(),
-		NotBefore: time.Now().UTC(),
+		Audience:    []string{},
+		Issuer:      os.Getenv("URLS_SELF_ISSUER"),
+		IssuedAt:    time.Now().UTC(),
+		NotBefore:   time.Now().UTC(),
+		Authorities: auth,
 	}
 
 	session := &JWTSession{

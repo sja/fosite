@@ -62,17 +62,18 @@ type JWTClaimsContainer interface {
 
 // JWTClaims represent a token's claims.
 type JWTClaims struct {
-	Subject    string
-	Issuer     string
-	Audience   []string
-	JTI        string
-	IssuedAt   time.Time
-	NotBefore  time.Time
-	ExpiresAt  time.Time
-	Scope      []string
-	Extra      map[string]interface{}
-	ScopeField JWTScopeFieldEnum
-	Rid        string
+	Subject     string
+	Issuer      string
+	Audience    []string
+	JTI         string
+	IssuedAt    time.Time
+	NotBefore   time.Time
+	ExpiresAt   time.Time
+	Scope       []string
+	Extra       map[string]interface{}
+	ScopeField  JWTScopeFieldEnum
+	Rid         string
+	Authorities []string
 }
 
 func (c *JWTClaims) With(expiry time.Time, scope, audience []string) JWTClaimsContainer {
@@ -128,8 +129,6 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 	} else {
 		ret["aud"] = []string{}
 	}
-
-
 	if !c.IssuedAt.IsZero() {
 		ret["iat"] = c.IssuedAt.Unix()
 	} else {
