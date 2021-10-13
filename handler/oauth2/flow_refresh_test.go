@@ -73,7 +73,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 
 						areq.Form.Add("refresh_token", "some.refreshtokensig")
 					},
-					expectErr: fosite.ErrInvalidRequest,
+					expectErr: fosite.ErrInvalidTokenFormat,
 				},
 				{
 					description: "should fail because token is valid but does not exist",
@@ -85,7 +85,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 						require.NoError(t, err)
 						areq.Form.Add("refresh_token", token)
 					},
-					expectErr: fosite.ErrInvalidRequest,
+					expectErr: fosite.ErrInvalidTokenFormat,
 				},
 				{
 					description: "should fail because client mismatches",

@@ -37,7 +37,9 @@ func (f *Fosite) writeJsonError(rw http.ResponseWriter, err error) {
 	rw.Header().Set("Pragma", "no-cache")
 
 	rfcerr := ErrorToRFC6749Error(err).WithLegacyFormat(f.UseLegacyErrorFormat).WithExposeDebug(f.SendDebugMessagesToClients)
-
+	if rfcerr.ErrorField == "invalid_token" {
+		rfcerr.CodeField = http.StatusUnauthorized
+	}
 	js, err := json.Marshal(rfcerr)
 	if err != nil {
 		if f.SendDebugMessagesToClients {

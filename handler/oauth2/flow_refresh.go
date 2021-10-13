@@ -65,7 +65,7 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	}
 
 	if !request.GetClient().GetGrantTypes().Has("refresh_token") {
-		return errorsx.WithStack(fosite.ErrUnauthorizedClient.WithHint("The OAuth 2.0 Client is not allowed to use authorization grant 'refresh_token'."))
+		return errorsx.WithStack(fosite.ErrInvalidGrant.WithHint("Wrong client for this refresh token."))
 	}
 
 	refresh := request.GetRequestForm().Get("refresh_token")
@@ -174,7 +174,7 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 		return verifyKey, nil
 	})
 	if err != nil {
-		return errorsx.WithStack(fosite.ErrInvalidRequest.WithWrap(err).WithDebugf("The token cannot be verified: %s", err.Error()))
+		return errorsx.WithStack(fosite.ErrInvalidTokenFormat.WithWrap(err).WithDebugf("Cannot convert access token to JSON"))
 	}
 
 	// Create a new session as there is not original request in hydra becouse original request were created in account web
