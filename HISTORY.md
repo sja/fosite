@@ -553,7 +553,7 @@ called `WildcardScopeStrategy`. This strategy is now the default when using the
 composer. To set the HierarchicScopeStrategy strategy, do:
 
 ```
-import "github.com/ory/fosite/compose"
+import "gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/compose"
 
 var config = &compose.Config{
     ScopeStrategy: fosite.HierarchicScopeStrategy,

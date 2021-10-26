@@ -165,6 +165,7 @@ func (c *DefaultClient) GetIDTokenTTL() int32 {
 	return c.IDTokenTTL
 }
 
+
 func (c *DefaultClient) GetGrantTypes() Arguments {
 	// https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	//

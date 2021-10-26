@@ -156,6 +156,7 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 		if clientAccessTokenTTL != 0 {
 			accessExpiry = time.Now().Add(time.Duration(clientAccessTokenTTL) * time.Minute)
 		}
+
 		claims := jwtSession.GetJWTClaims().
 			With(
 				accessExpiry,

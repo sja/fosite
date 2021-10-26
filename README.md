@@ -192,7 +192,7 @@ scope strategy if you need a custom one by implementing `fosite.ScopeStrategy`.
 Using the composer, setting a strategy is easy:
 
 ```go
-import "github.com/ory/fosite/compose"
+import "gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/compose"
 
 var config = &compose.Config{
     ScopeStrategy: fosite.HierarchicScopeStrategy,
@@ -256,9 +256,9 @@ and OAuth2 handlers enabled. Please refer to the
 This little code snippet sets up a full-blown OAuth2 and OpenID Connect example.
 
 ```go
-import "github.com/ory/fosite"
-import "github.com/ory/fosite/compose"
-import "github.com/ory/fosite/storage"
+import "gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite"
+import "gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/compose"
+import "gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/storage"
 
 // This is the example storage that contains:
 // * an OAuth2 Client with id "my-client" and secrets "foobar" and "foobaz" capable of all oauth2 and open id connect grant and response types.
