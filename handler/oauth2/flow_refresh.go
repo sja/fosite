@@ -254,9 +254,11 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 		return c.handleRefreshTokenEndpointStorageError(ctx, true, err)
 	}
 
+	accessTokenExpiry := getExpiryDurationFromToken(accessToken, c.AccessTokenLifespan)
+
 	responder.SetAccessToken(accessToken)
 	responder.SetTokenType("bearer")
-	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, c.AccessTokenLifespan, time.Now().UTC()))
+	responder.SetExpiresIn(accessTokenExpiry)
 	responder.SetScopes(requester.GetGrantedScopes())
 	responder.SetExtra("refresh_token", refreshToken)
 

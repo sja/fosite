@@ -24,7 +24,7 @@ package oauth2
 import (
 	"context"
 	"time"
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/ory/fosite"
 )
 
@@ -36,14 +36,14 @@ type HandleHelper struct {
 }
 
 func (h *HandleHelper) IssueAccessToken(ctx context.Context, requester fosite.AccessRequester, responder fosite.AccessResponder) error {
-	token, signature, err := h.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
+	accessToken, signature, err := h.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
 	if err != nil {
 		return err
 	} else if err := h.AccessTokenStorage.CreateAccessTokenSession(ctx, signature, requester.Sanitize([]string{})); err != nil {
 		return err
 	}
 
-	responder.SetAccessToken(token)
+	responder.SetAccessToken(accessToken)
 	responder.SetTokenType("bearer")
 	accessTokenTTL := h.AccessTokenLifespan
 	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
@@ -51,7 +51,9 @@ func (h *HandleHelper) IssueAccessToken(ctx context.Context, requester fosite.Ac
 		accessTokenTTL = time.Duration(clientAccessTokenTTL) * time.Minute
 	}
 
-	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, accessTokenTTL, time.Now().UTC()))
+	accessTokenExpiry := getExpiryDurationFromToken(accessToken, accessTokenTTL)
+
+	responder.SetExpiresIn(accessTokenExpiry)
 	responder.SetScopes(requester.GetGrantedScopes())
 	return nil
 }
@@ -66,3 +68,34 @@ func getExpiresIn(r fosite.Requester, key fosite.TokenType, defaultLifespan time
 	}
 	return sessionDuration
 }
+
+func getExpiryDurationFromToken(tokenString string, defaultLifespan time.Duration) time.Duration{
+	claims := jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(accessToken *jwt.Token) (interface{}, error) {
+		return "", nil
+	})
+	if err != nil {
+		if claims == nil {
+			return defaultLifespan
+		}
+	}
+
+	iatClaim, ok := claims["iat"]
+	if !ok {
+		iatClaim = time.Now().UTC()
+	}
+
+	expClaim, ok := claims["exp"]
+	if !ok {
+		return defaultLifespan
+	}
+
+	iatUnix := time.Unix(int64(iatClaim.(float64)), int64(time.Second))
+	expUnix := time.Unix(int64(expClaim.(float64)), int64(time.Second))
+
+	tokenExpiryDuration := time.Duration(expUnix.UnixNano() - iatUnix.UnixNano())
+
+	return tokenExpiryDuration
+
+}
+

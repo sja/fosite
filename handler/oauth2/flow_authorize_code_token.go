@@ -153,7 +153,7 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 		requester.GrantAudience(audience)
 	}
 
-	access, accessSignature, err := c.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
+	accessToken, accessSignature, err := c.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
 	if err != nil {
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
 	}
@@ -190,15 +190,17 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 		}
 	}
 
-	responder.SetAccessToken(access)
+
+	responder.SetAccessToken(accessToken)
 	responder.SetTokenType("bearer")
 	accessTokenTTL := c.AccessTokenLifespan
 	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
 	if clientAccessTokenTTL != 0 {
 		accessTokenTTL = time.Duration(clientAccessTokenTTL) * time.Minute
 	}
+	accessTokenExpiry := getExpiryDurationFromToken(accessToken, accessTokenTTL)
 
-	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, accessTokenTTL, time.Now().UTC()))
+	responder.SetExpiresIn(accessTokenExpiry)
 	responder.SetScopes(requester.GetGrantedScopes())
 	if refresh != "" {
 		responder.SetExtra("refresh_token", refresh)
