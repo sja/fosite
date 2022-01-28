@@ -45,3 +45,8 @@ func (a *AccessRequest) GetGrantTypes() Arguments {
 func (a *AccessRequest) GetClient() Client {
 	return a.Client
 }
+
+// VN-68161
+func (a *AccessRequest) GetRequest() Request {
+	return a.Request
+}

@@ -157,12 +157,27 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 			accessExpiry = time.Now().Add(time.Duration(clientAccessTokenTTL) * time.Minute)
 		}
 
-		claims := jwtSession.GetJWTClaims().
-			With(
+		// VN-68161
+		grantType := requester.GetRequest().Form.Get("grant_type")
+		claims := jwtSession.GetJWTClaims()
+
+		if grantType != "" {
+			claims.WithAccountweb(
 				accessExpiry,
 				requester.GetGrantedScopes(),
 				requester.GetGrantedAudience(),
-			).
+				grantType,
+				false,
+			)
+		} else {
+			claims.With(
+				accessExpiry,
+				requester.GetGrantedScopes(),
+				requester.GetGrantedAudience(),
+			)
+		}
+
+		claims.
 			WithDefaults(
 				time.Now().UTC(),
 				h.Issuer,
@@ -182,13 +197,25 @@ func (h *DefaultJWTStrategy) generateRefresh(ctx context.Context, requester fosi
 		return "", "", errors.New("GetTokenClaims() must not be nil")
 	} else {
 		expiry := jwtSession.GetExpiresAt(fosite.RefreshToken)
+		claims := jwtSession.GetJWTClaims()
 
-		claims := jwtSession.GetJWTClaims().
-			With(
+		// VN-68161
+		grantType := requester.GetRequest().Form.Get("grant_type")
+		if grantType != "" {
+			claims.WithAccountweb(
+				expiry,
+				requester.GetGrantedScopes(),
+				requester.GetGrantedAudience(),
+				grantType,
+				true,
+			)
+		} else {
+			claims.With(
 				expiry,
 				requester.GetGrantedScopes(),
 				requester.GetGrantedAudience(),
 			)
+		}
 
 		return h.JWTStrategy.Generate(ctx, claims.ToMapClaims(), jwtSession.GetJWTHeader())
 	}

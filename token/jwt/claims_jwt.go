@@ -49,6 +49,9 @@ type JWTClaimsContainer interface {
 	// With returns a copy of itself with expiresAt, scope, audience set to the given values.
 	With(expiry time.Time, scope, audience []string) JWTClaimsContainer
 
+	// VN-68161
+	WithAccountweb(expiry time.Time, scope, audience []string,grantType string, isRefresh bool) JWTClaimsContainer
+
 	// WithDefaults returns a copy of itself with issuedAt and issuer set to the given default values. If those
 	// values are already set in the claims, they will not be updated.
 	WithDefaults(iat time.Time, issuer string) JWTClaimsContainer
@@ -66,7 +69,10 @@ type JWTClaims struct {
 	Issuer     string
 	Audience   []string
 	JTI        string
+	ATI        string
+	GrantType  string
 	IssuedAt   time.Time
+	AuthTime   time.Time
 	NotBefore  time.Time
 	ExpiresAt  time.Time
 	Scope      []string
@@ -74,6 +80,7 @@ type JWTClaims struct {
 	ScopeField JWTScopeFieldEnum
 	Rid        string
 	Authorities []string
+	isRefresh bool
 }
 
 func (c *JWTClaims) With(expiry time.Time, scope, audience []string) JWTClaimsContainer {
@@ -83,9 +90,20 @@ func (c *JWTClaims) With(expiry time.Time, scope, audience []string) JWTClaimsCo
 	return c
 }
 
+// VN-68161
+func (c *JWTClaims) WithAccountweb(expiry time.Time, scope, audience []string, grantType string, isRefresh bool) JWTClaimsContainer {
+	c.ExpiresAt = expiry
+	c.Scope = scope
+	c.Audience = audience
+	c.GrantType = grantType
+	c.isRefresh = isRefresh
+	return c
+}
+
 func (c *JWTClaims) WithDefaults(iat time.Time, issuer string) JWTClaimsContainer {
 	if c.IssuedAt.IsZero() {
 		c.IssuedAt = iat
+		c.AuthTime = iat
 	}
 
 	if c.Issuer == "" {
@@ -139,6 +157,22 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 		delete(ret, "iat")
 	}
 
+	// VN-68161
+	if c.GrantType != "" {
+		ret["grant_type"] = c.GrantType
+	} else {
+		delete(ret, "grant_type")
+	}
+
+	// VN-68161
+	if c.isRefresh {
+		ret["ati"] = ret["jti"]
+		ret["auth_time"] = ret["iat"]
+	} else {
+		delete(ret, "ati")
+		delete(ret, "auth_time")
+	}
+
 	if !c.NotBefore.IsZero() {
 		ret["nbf"] = c.NotBefore.Unix()
 	} else {
@@ -151,10 +185,12 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 		delete(ret, "exp")
 	}
 
+	// VN-68161
 	if c.Scope != nil {
 		// ScopeField default (when value is JWTScopeFieldUnset) is the list for backwards compatibility with old versions of fosite.
 		if c.ScopeField == JWTScopeFieldUnset || c.ScopeField == JWTScopeFieldList || c.ScopeField == JWTScopeFieldBoth {
 			ret["scp"] = c.Scope
+			ret["scope"] = c.Scope
 		}
 		if c.ScopeField == JWTScopeFieldString || c.ScopeField == JWTScopeFieldBoth {
 			ret["scope"] = strings.Join(c.Scope, " ")

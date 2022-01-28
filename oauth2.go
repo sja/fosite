@@ -236,12 +236,18 @@ type Requester interface {
 
 	// Sanitize returns a sanitized clone of the request which can be used for storage.
 	Sanitize(allowedParameters []string) Requester
+
+	//VN-68161
+	GetRequest() Request
 }
 
 // AccessRequester is a token endpoint's request context.
 type AccessRequester interface {
 	// GetGrantType returns the requests grant type.
 	GetGrantTypes() (grantTypes Arguments)
+
+	//VN-68161
+	GetRequest() Request
 
 	Requester
 }
@@ -276,6 +282,9 @@ type AuthorizeRequester interface {
 
 	// GetDefaultResponseMode gets default response mode for a response type in a flow
 	GetDefaultResponseMode() ResponseModeType
+
+	//VN-68161
+	GetRequest() Request
 
 	Requester
 }

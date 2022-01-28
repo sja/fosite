@@ -56,6 +56,7 @@ var jwtClaimsMap = map[string]interface{}{
 	"exp": jwtClaims.ExpiresAt.Unix(),
 	"jti": jwtClaims.JTI,
 	"scp": []string{"email", "offline"},
+	"scope": []string{"email", "offline"},
 	"foo": jwtClaims.Extra["foo"],
 	"baz": jwtClaims.Extra["baz"],
 	"rid": "foo",

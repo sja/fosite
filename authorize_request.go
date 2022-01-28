@@ -114,3 +114,8 @@ func (d *AuthorizeRequest) SetDefaultResponseMode(defaultResponseMode ResponseMo
 func (d *AuthorizeRequest) GetDefaultResponseMode() ResponseModeType {
 	return d.DefaultResponseMode
 }
+
+// VN-68161
+func (a *AuthorizeRequest) GetRequest() Request {
+	return a.Request
+}

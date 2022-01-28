@@ -193,3 +193,8 @@ func (a *Request) Sanitize(allowedParameters []string) Requester {
 
 	return b
 }
+
+// VN-68161
+func (a *Request) GetRequest() Request {
+	return *a
+}
