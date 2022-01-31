@@ -44,11 +44,71 @@ type IDTokenClaims struct {
 	CodeHash                            string
 	Extra                               map[string]interface{}
 	Rid                                 string
+	Name                      string     `json:"name" mapstructure:"name"`
+	FamilyName				  string 	 `json:"family_name" mapstructure:"family_name"`
+	GivenName				  string 	 `json:"given_name" mapstructure:"given_name"`
+	PreferredUsername		  string 	 `json:"preferred_username" mapstructure:"preferred_username"`
+	Birthday                  *time.Time `time_format:"2006-01-02" json:"birthday" mapstructure:"birthday"`
+	Email                     string     `json:"email" mapstructure:"email"`
+	EmailVerified             bool		 `json:"email_verified" mapstructure:"email_verified"`
+	Locale                    string     `json:"locale" mapstructure:"locale"`
+	Thermomixes               []string   `json:"thermomixes" mapstructure:"thermomixes"`
 }
 
 // ToMap will transform the headers to a map structure
 func (c *IDTokenClaims) ToMap() map[string]interface{} {
 	var ret = Copy(c.Extra)
+
+	if c.Name != "" {
+		ret["name"] = c.Name
+	}else {
+		delete(ret, "name")
+	}
+
+	if c.FamilyName != "" {
+		ret["family_name"] = c.FamilyName
+	}else {
+		delete(ret, "family_name")
+	}
+
+	if c.GivenName != "" {
+		ret["given_name"] = c.GivenName
+	}else {
+		delete(ret, "given_name")
+	}
+
+	if c.PreferredUsername != "" {
+		ret["preferred_username"] = c.PreferredUsername
+	}else {
+		delete(ret, "preferred_username")
+	}
+
+	if c.Birthday != nil {
+		ret["birthday"] = c.Birthday
+	}else {
+		delete(ret, "birthday")
+	}
+
+	if c.Email != "" {
+		ret["email"] = c.Email
+	}else {
+		delete(ret, "email")
+	}
+
+	ret["email_verified"] = c.EmailVerified
+
+	if c.Locale != "" {
+		ret["locale"] = c.Locale
+	}else {
+		delete(ret, "locale")
+	}
+
+	if c.Thermomixes != nil {
+		ret["thermomixes"] = c.Thermomixes
+	}else {
+		delete(ret, "thermomixes")
+	}
+
 
 	if c.Subject != "" {
 		ret["sub"] = c.Subject
