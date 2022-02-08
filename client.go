@@ -56,6 +56,13 @@ type Client interface {
 
 	// GetIDTokenTTL returns id token ttl for this client.
 	GetIDTokenTTL() int32
+
+	//VN-68828
+	//GetMinimumScopes returns the minimum scopes if the client has metadata.internal_client=true.
+	//Returns nil if client isn't internal VN-68828
+	GetMinimumScopes() []string
+	//VN-68828
+	IsInternalClient() bool
 }
 
 // ClientWithSecretRotation extends Client interface by a method providing a slice of rotated secrets.
@@ -99,6 +106,12 @@ type ResponseModeClient interface {
 	GetResponseModes() []ResponseModeType
 }
 
+//VN-68828
+type Metadata struct {
+	InternalClient bool `json:"internal_client"`
+	DefaultScopes []string 	`json:"default_scopes"`
+}
+
 // DefaultClient is a simple default implementation of the Client interface.
 type DefaultClient struct {
 	ID             string   `json:"id"`
@@ -112,6 +125,8 @@ type DefaultClient struct {
 	Public         bool     `json:"public"`
 	AccessTokenTTL int32    `json:"access_token_ttl"`
 	IDTokenTTL     int32    `json:"id_token_ttl"`
+	//VN-68828
+	Metadata *Metadata    	`json:"metadata"`
 }
 
 type DefaultOpenIDConnectClient struct {
@@ -187,6 +202,19 @@ func (c *DefaultClient) GetResponseTypes() Arguments {
 		return Arguments{"code"}
 	}
 	return Arguments(c.ResponseTypes)
+}
+
+//VN-68828
+func (c *DefaultClient) GetMinimumScopes() []string {
+	if c.Metadata.InternalClient {
+		return c.Metadata.DefaultScopes
+	}
+	return nil
+}
+
+//VN-68828
+func (c *DefaultClient) IsInternalClient() bool {
+	return c.Metadata.InternalClient
 }
 
 func (c *DefaultOpenIDConnectClient) GetJSONWebKeysURI() string {
