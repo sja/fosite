@@ -206,6 +206,11 @@ func (c *DefaultClient) GetResponseTypes() Arguments {
 
 //VN-68828
 func (c *DefaultClient) GetMinimumScopes() []string {
+
+	if c.Metadata == nil {
+		return nil
+	}
+
 	if c.Metadata.InternalClient {
 		return c.Metadata.DefaultScopes
 	}
@@ -214,6 +219,9 @@ func (c *DefaultClient) GetMinimumScopes() []string {
 
 //VN-68828
 func (c *DefaultClient) IsInternalClient() bool {
+	if c.Metadata == nil {
+		return false
+	}
 	return c.Metadata.InternalClient
 }
 
