@@ -130,6 +130,11 @@ func (c *IDTokenClaims) ToMap() map[string]interface{} {
 
 	if len(c.Rid) > 0 {
 		ret["rid"] = c.Rid
+	//VN-69563
+	} else if c.Extra != nil {
+		if val, ok := c.Extra["foo"]; ok {
+			ret["rid"] = val
+		}
 	} else {
 		delete(ret, "rid")
 	}
