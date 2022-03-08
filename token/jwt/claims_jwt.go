@@ -72,7 +72,6 @@ type JWTClaims struct {
 	ATI        string
 	GrantType  string
 	IssuedAt   time.Time
-	AuthTime   time.Time
 	NotBefore  time.Time
 	ExpiresAt  time.Time
 	Scope      []string
@@ -103,7 +102,6 @@ func (c *JWTClaims) WithAccountweb(expiry time.Time, scope, audience []string, g
 func (c *JWTClaims) WithDefaults(iat time.Time, issuer string) JWTClaimsContainer {
 	if c.IssuedAt.IsZero() {
 		c.IssuedAt = iat
-		c.AuthTime = iat
 	}
 
 	if c.Issuer == "" {
@@ -167,10 +165,8 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 	// VN-68161
 	if c.isRefresh {
 		ret["ati"] = ret["jti"]
-		ret["auth_time"] = ret["iat"]
 	} else {
 		delete(ret, "ati")
-		delete(ret, "auth_time")
 	}
 
 	if !c.NotBefore.IsZero() {
