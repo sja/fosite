@@ -73,6 +73,7 @@ type JWTClaims struct {
 	GrantType  string
 	IssuedAt   time.Time
 	NotBefore  time.Time
+	AuthTime   time.Time
 	ExpiresAt  time.Time
 	Scope      []string
 	Extra      map[string]interface{}
@@ -165,7 +166,9 @@ func (c *JWTClaims) ToMap() map[string]interface{} {
 	// VN-68161
 	if c.isRefresh {
 		ret["ati"] = ret["jti"]
+		ret["auth_time"] = c.AuthTime.Unix()
 	} else {
+		delete(ret, "auth_time")
 		delete(ret, "ati")
 	}
 
