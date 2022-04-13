@@ -1,10 +1,6 @@
 linters:
   enable:
-    - errcheck
     - gosec
-    - govet
-    - typecheck
-    - varcheck
   disable:
     - ineffassign
     - deadcode

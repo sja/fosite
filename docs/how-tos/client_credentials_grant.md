@@ -18,8 +18,8 @@ package main
 import (
 	"net/http"
 
-	"gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite"
-	"gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/handler/oauth2"
+	"github.com/ory/fosite"
+	"github.com/ory/fosite/handler/oauth2"
 )
 
 type tokenHandler struct {
@@ -81,9 +81,9 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite"
-	"gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/compose"
-	"gitlab.tmecosys.net/nwot/cross-functional/auth/authentication-manager/fosite/storage"
+	"github.com/ory/fosite"
+	"github.com/ory/fosite/compose"
+	"github.com/ory/fosite/storage"
 )
 
 func main() {
