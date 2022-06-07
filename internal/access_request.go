@@ -20,6 +20,12 @@ type MockAccessRequester struct {
 	recorder *MockAccessRequesterMockRecorder
 }
 
+func (m *MockAccessRequester) GetRequest() fosite.Request {
+	//TODO implement me
+	panic("implement me")
+}
+
+
 // MockAccessRequesterMockRecorder is the mock recorder for MockAccessRequester
 type MockAccessRequesterMockRecorder struct {
 	mock *MockAccessRequester

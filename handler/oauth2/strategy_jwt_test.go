@@ -135,6 +135,38 @@ var jwtValidCaseWithRefreshExpiry = func(tokenType fosite.TokenType) *fosite.Req
 	return r
 }
 
+var jwtValidCaseWithClientAccessTokenTTL = func(tokenType fosite.TokenType) *fosite.Request {
+	r := &fosite.Request{
+		Client: &fosite.DefaultClient{
+			Secret:         []byte("foobarfoobarfoobarfoobar"),
+			AccessTokenTTL: 20,
+		},
+		Session: &JWTSession{
+			JWTClaims: &jwt.JWTClaims{
+				Issuer:    "fosite",
+				Subject:   "peter",
+				Audience:  []string{"group0"},
+				IssuedAt:  time.Now().UTC(),
+				NotBefore: time.Now().UTC(),
+				Extra:     map[string]interface{}{"foo": "bar"},
+			},
+			JWTHeader: &jwt.Headers{
+				Extra: make(map[string]interface{}),
+			},
+			ExpiresAt: map[fosite.TokenType]time.Time{
+				tokenType:           time.Now().UTC().Add(time.Hour),
+				fosite.RefreshToken: time.Now().UTC().Add(time.Hour * 2).Round(time.Hour),
+			},
+		},
+	}
+	r.SetRequestedScopes([]string{"email", "offline"})
+	r.GrantScope("email")
+	r.GrantScope("offline")
+	r.SetRequestedAudience([]string{"group0"})
+	r.GrantAudience("group0")
+	return r
+}
+
 // returns an expired JWT type. The JWTClaims.ExpiresAt time is intentionally
 // left empty to ensure it is pulled from the session's ExpiresAt map for
 // the given fosite.TokenType.
@@ -192,6 +224,10 @@ func TestAccessToken(t *testing.T) {
 			},
 			{
 				r:    jwtValidCaseWithRefreshExpiry(fosite.AccessToken),
+				pass: true,
+			},
+			{
+				r:    jwtValidCaseWithClientAccessTokenTTL(fosite.AccessToken),
 				pass: true,
 			},
 		} {

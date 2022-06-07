@@ -56,6 +56,7 @@ type DefaultSession struct {
 	ExpiresAt map[fosite.TokenType]time.Time
 	Username  string
 	Subject   string
+	Rid       string
 }
 
 func NewDefaultSession() *DefaultSession {
@@ -218,6 +219,11 @@ func (h DefaultStrategy) GenerateIDToken(ctx context.Context, requester fosite.R
 		claims.ExpiresAt = time.Now().UTC().Add(h.Expiry)
 	}
 
+	clientIDTokenTTL := requester.GetClient().GetIDTokenTTL()
+	if clientIDTokenTTL != 0 {
+		idTokenTTL := time.Duration(clientIDTokenTTL) * time.Minute
+		claims.ExpiresAt = time.Now().UTC().Add(idTokenTTL)
+	}
 	if claims.ExpiresAt.Before(time.Now().UTC()) {
 		return "", errorsx.WithStack(fosite.ErrServerError.WithDebug("Failed to generate id token because expiry claim can not be in the past."))
 	}
@@ -230,6 +236,9 @@ func (h DefaultStrategy) GenerateIDToken(ctx context.Context, requester fosite.R
 		claims.Issuer = h.Issuer
 	}
 
+	if claims.Rid == "" {
+		claims.Rid = sess.IDTokenClaims().Rid
+	}
 	// OPTIONAL. String value used to associate a Client session with an ID Token, and to mitigate replay attacks.
 	if nonce := requester.GetRequestForm().Get("nonce"); len(nonce) == 0 {
 	} else if len(nonce) > 0 && len(nonce) < h.MinParameterEntropy {

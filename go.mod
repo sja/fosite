@@ -9,6 +9,8 @@ replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
@@ -22,6 +24,7 @@ require (
 	github.com/parnurzeal/gorequest v0.2.15
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/afero v1.3.2 // indirect
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c
