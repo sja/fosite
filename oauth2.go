@@ -34,11 +34,21 @@ type TokenUse = TokenType
 
 type TokenType string
 
+type GrantType string
+
 const (
 	AccessToken   TokenType = "access_token"
 	RefreshToken  TokenType = "refresh_token"
 	AuthorizeCode TokenType = "authorize_code"
 	IDToken       TokenType = "id_token"
+
+	GrantTypeImplicit          GrantType = "implicit"
+	GrantTypeRefreshToken      GrantType = "refresh_token"
+	GrantTypeAuthorizationCode GrantType = "authorization_code"
+	GrantTypePassword          GrantType = "password"
+	GrantTypeClientCredentials GrantType = "client_credentials"
+	// #nosec G101
+	GrantTypeJwtBearer GrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 
 	BearerAccessToken string = "bearer"
 )

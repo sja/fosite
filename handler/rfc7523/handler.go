@@ -34,7 +34,7 @@ import (
 	"github.com/ory/x/errorsx"
 )
 
-//#nosec G101 -- This is a false positive
+// #nosec G101
 const grantTypeJWTBearer = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 
 type Handler struct {
@@ -128,7 +128,9 @@ func (c *Handler) HandleTokenEndpointRequest(ctx context.Context, request fosite
 	if err != nil {
 		return err
 	}
-	session.SetExpiresAt(fosite.AccessToken, time.Now().UTC().Add(c.HandleHelper.AccessTokenLifespan).Round(time.Second))
+
+	atLifespan := fosite.GetEffectiveLifespan(request.GetClient(), fosite.GrantTypeJwtBearer, fosite.AccessToken, c.HandleHelper.AccessTokenLifespan)
+	session.SetExpiresAt(fosite.AccessToken, time.Now().UTC().Add(atLifespan).Round(time.Second))
 	session.SetSubject(claims.Subject)
 
 	return nil
@@ -139,7 +141,8 @@ func (c *Handler) PopulateTokenEndpointResponse(ctx context.Context, request fos
 		return err
 	}
 
-	return c.IssueAccessToken(ctx, request, response)
+	atLifespan := fosite.GetEffectiveLifespan(request.GetClient(), fosite.GrantTypeJwtBearer, fosite.AccessToken, c.HandleHelper.AccessTokenLifespan)
+	return c.IssueAccessToken(ctx, atLifespan, request, response)
 }
 
 func (c *Handler) CanSkipClientAuth(requester fosite.AccessRequester) bool {

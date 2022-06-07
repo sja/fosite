@@ -35,26 +35,27 @@ type HandleHelper struct {
 	RefreshTokenLifespan time.Duration
 }
 
-func (h *HandleHelper) IssueAccessToken(ctx context.Context, requester fosite.AccessRequester, responder fosite.AccessResponder) error {
-	accessToken, signature, err := h.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
+func (h *HandleHelper) IssueAccessToken(ctx context.Context, defaultLifespan time.Duration, requester fosite.AccessRequester, responder fosite.AccessResponder) error {
+	token, signature, err := h.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
 	if err != nil {
 		return err
 	} else if err := h.AccessTokenStorage.CreateAccessTokenSession(ctx, signature, requester.Sanitize([]string{})); err != nil {
 		return err
 	}
 
-	responder.SetAccessToken(accessToken)
+	responder.SetAccessToken(token)
 	responder.SetTokenType("bearer")
-	accessTokenTTL := h.AccessTokenLifespan
-	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
-	if clientAccessTokenTTL != 0 {
-		accessTokenTTL = time.Duration(clientAccessTokenTTL) * time.Minute
+	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, defaultLifespan, time.Now().UTC()))
+	responder.SetScopes(requester.GetGrantedScopes())
+
+	// Override: If Hydra Client defined an AccessToken TTL, use that.
+	// Otherwise, let the expiry which was already set above.
+	clientAccessTokenLifetime := time.Duration(requester.GetClient().GetAccessTokenTTL()) * time.Minute
+	if clientAccessTokenLifetime > 0 {
+		accessTokenExpiry := getExpiryDurationFromToken(token, clientAccessTokenLifetime)
+		responder.SetExpiresIn(accessTokenExpiry)
 	}
 
-	accessTokenExpiry := getExpiryDurationFromToken(accessToken, accessTokenTTL)
-
-	responder.SetExpiresIn(accessTokenExpiry)
-	responder.SetScopes(requester.GetGrantedScopes())
 	return nil
 }
 

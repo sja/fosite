@@ -110,9 +110,12 @@ func (c *AuthorizeExplicitGrantHandler) HandleTokenEndpointRequest(ctx context.C
 	request.SetSession(authorizeRequest.GetSession())
 	request.SetID(authorizeRequest.GetID())
 
-	request.GetSession().SetExpiresAt(fosite.AccessToken, time.Now().UTC().Add(c.AccessTokenLifespan).Round(time.Second))
-	if c.RefreshTokenLifespan > -1 {
-		request.GetSession().SetExpiresAt(fosite.RefreshToken, time.Now().UTC().Add(c.RefreshTokenLifespan).Round(time.Second))
+	atLifespan := fosite.GetEffectiveLifespan(request.GetClient(), fosite.GrantTypeAuthorizationCode, fosite.AccessToken, c.AccessTokenLifespan)
+	request.GetSession().SetExpiresAt(fosite.AccessToken, time.Now().UTC().Add(atLifespan).Round(time.Second))
+
+	rtLifespan := fosite.GetEffectiveLifespan(request.GetClient(), fosite.GrantTypeAuthorizationCode, fosite.RefreshToken, c.RefreshTokenLifespan)
+	if rtLifespan > -1 {
+		request.GetSession().SetExpiresAt(fosite.RefreshToken, time.Now().UTC().Add(rtLifespan).Round(time.Second))
 	}
 
 	return nil
@@ -153,7 +156,7 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 		requester.GrantAudience(audience)
 	}
 
-	accessToken, accessSignature, err := c.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
+	access, accessSignature, err := c.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
 	if err != nil {
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
 	}
@@ -188,20 +191,21 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 		}
 	}
 
-
-	responder.SetAccessToken(accessToken)
+	responder.SetAccessToken(access)
 	responder.SetTokenType("bearer")
-	accessTokenTTL := c.AccessTokenLifespan
-	clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
-	if clientAccessTokenTTL != 0 {
-		accessTokenTTL = time.Duration(clientAccessTokenTTL) * time.Minute
-	}
-	accessTokenExpiry := getExpiryDurationFromToken(accessToken, accessTokenTTL)
-
-	responder.SetExpiresIn(accessTokenExpiry)
+	atLifespan := fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeAuthorizationCode, fosite.AccessToken, c.AccessTokenLifespan)
+	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, atLifespan, time.Now().UTC()))
 	responder.SetScopes(requester.GetGrantedScopes())
 	if refresh != "" {
 		responder.SetExtra("refresh_token", refresh)
+	}
+
+	// Override: If Hydra Client AccessTokenTTL is set, use that
+	// Otherwise, use the already set expiry from above
+	atLifespanByClient := time.Duration(requester.GetClient().GetAccessTokenTTL()) * time.Minute
+	if atLifespanByClient > 0 {
+		atExpiresIn := getExpiryDurationFromToken(access, atLifespanByClient)
+		responder.SetExpiresIn(atExpiresIn)
 	}
 
 	if err = storage.MaybeCommitTx(ctx, c.CoreStorage); err != nil {

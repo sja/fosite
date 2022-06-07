@@ -33,15 +33,16 @@ import (
 
 	"github.com/ory/x/errorsx"
 
-	"github.com/ory/fosite/token/jwt"
 	"github.com/pkg/errors"
 	jose "gopkg.in/square/go-jose.v2"
+
+	"github.com/ory/fosite/token/jwt"
 )
 
 // ClientAuthenticationStrategy provides a method signature for authenticating a client request
 type ClientAuthenticationStrategy func(context.Context, *http.Request, url.Values) (Client, error)
 
-//#nosec G101 -- This is a false positive
+// #nosec G101
 const clientAssertionJWTBearerType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 func (f *Fosite) findClientPublicJWK(oidcClient OpenIDConnectClient, t *jwt.Token, expectsRSAKey bool) (interface{}, error) {
