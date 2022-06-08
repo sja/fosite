@@ -43,6 +43,7 @@ type IDTokenClaims struct {
 	AuthenticationMethodsReferences     []string
 	CodeHash                            string
 	Extra                               map[string]interface{}
+	Rid                                 string
 }
 
 // ToMap will transform the headers to a map structure
@@ -125,6 +126,17 @@ func (c *IDTokenClaims) ToMap() map[string]interface{} {
 		ret["amr"] = c.AuthenticationMethodsReferences
 	} else {
 		delete(ret, "amr")
+	}
+
+	if len(c.Rid) > 0 {
+		ret["rid"] = c.Rid
+	//VN-69563
+	} else if c.Extra != nil {
+		if val, ok := c.Extra["foo"]; ok {
+			ret["rid"] = val
+		}
+	} else {
+		delete(ret, "rid")
 	}
 
 	return ret

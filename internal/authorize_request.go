@@ -20,6 +20,12 @@ type MockAuthorizeRequester struct {
 	recorder *MockAuthorizeRequesterMockRecorder
 }
 
+func (m *MockAuthorizeRequester) GetRequest() fosite.Request {
+	//TODO implement me
+	panic("implement me")
+}
+
+
 // MockAuthorizeRequesterMockRecorder is the mock recorder for MockAuthorizeRequester
 type MockAuthorizeRequesterMockRecorder struct {
 	mock *MockAuthorizeRequester

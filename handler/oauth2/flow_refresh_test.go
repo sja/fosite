@@ -78,7 +78,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 
 						areq.Form.Add("refresh_token", "some.refreshtokensig")
 					},
-					expectErr: fosite.ErrInvalidGrant,
+					expectErr: fosite.ErrInvalidTokenFormat,
 				},
 				{
 					description: "should fail because token is valid but does not exist",
@@ -90,7 +90,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 						require.NoError(t, err)
 						areq.Form.Add("refresh_token", token)
 					},
-					expectErr: fosite.ErrInvalidGrant,
+					expectErr: fosite.ErrInvalidTokenFormat,
 				},
 				{
 					description: "should fail because client mismatches",
@@ -564,6 +564,11 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 					GetRefreshTokenSession(propagatedContext, gomock.Any(), nil).
 					Return(nil, errors.New("Whoops, a nasty database error occurred!")).
 					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
+					Return(errors.New("Whoops, a nasty database error occurred!")).
+					Times(1)
 				mockTransactional.
 					EXPECT().
 					Rollback(propagatedContext).
@@ -587,13 +592,18 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 					GetRefreshTokenSession(propagatedContext, gomock.Any(), nil).
 					Return(nil, fosite.ErrNotFound).
 					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
+					Return(fosite.ErrServerError).
+					Times(1)
 				mockTransactional.
 					EXPECT().
 					Rollback(propagatedContext).
 					Return(nil).
 					Times(1)
 			},
-			expectError: fosite.ErrInvalidRequest,
+			expectError: fosite.ErrServerError,
 		},
 		{
 			description: "transaction should be rolled back if call to `RevokeAccessToken` results in an error",
@@ -612,6 +622,11 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 				mockRevocationStore.
 					EXPECT().
 					RevokeAccessToken(propagatedContext, gomock.Any()).
+					Return(errors.New("Whoops, a nasty database error occurred!")).
+					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
 					Return(errors.New("Whoops, a nasty database error occurred!")).
 					Times(1)
 				mockTransactional.
@@ -640,6 +655,11 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 				mockRevocationStore.
 					EXPECT().
 					RevokeAccessToken(propagatedContext, gomock.Any()).
+					Return(fosite.ErrSerializationFailure).
+					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
 					Return(fosite.ErrSerializationFailure).
 					Times(1)
 				mockTransactional.
@@ -697,6 +717,11 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 					RevokeRefreshTokenMaybeGracePeriod(propagatedContext, gomock.Any(), gomock.Any()).
 					Return(errors.New("Whoops, a nasty database error occurred!")).
 					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
+					Return(errors.New("Whoops, a nasty database error occurred!")).
+					Times(1)
 				mockTransactional.
 					EXPECT().
 					Rollback(propagatedContext).
@@ -728,6 +753,11 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 				mockRevocationStore.
 					EXPECT().
 					RevokeRefreshTokenMaybeGracePeriod(propagatedContext, gomock.Any(), gomock.Any()).
+					Return(fosite.ErrSerializationFailure).
+					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
 					Return(fosite.ErrSerializationFailure).
 					Times(1)
 				mockTransactional.
@@ -921,6 +951,11 @@ func TestRefreshFlowTransactional_PopulateTokenEndpointResponse(t *testing.T) {
 					EXPECT().
 					GetRefreshTokenSession(propagatedContext, gomock.Any(), nil).
 					Return(nil, fosite.ErrNotFound).
+					Times(1)
+				mockRevocationStore.
+					EXPECT().
+					CreateAccessTokenSession(propagatedContext, gomock.Any(), gomock.Any()).
+					Return(fosite.ErrNotFound).
 					Times(1)
 				mockTransactional.
 					EXPECT().

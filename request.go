@@ -199,3 +199,8 @@ func (a *Request) Sanitize(allowedParameters []string) Requester {
 func (a *Request) GetLang() language.Tag {
 	return a.Lang
 }
+
+// VN-68161
+func (a *Request) GetRequest() Request {
+	return *a
+}

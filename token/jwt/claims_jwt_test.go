@@ -44,6 +44,7 @@ var jwtClaims = &JWTClaims{
 		"baz": "bar",
 	},
 	ScopeField: JWTScopeFieldList,
+	Rid:        "foo",
 }
 
 var jwtClaimsMap = map[string]interface{}{
@@ -55,8 +56,10 @@ var jwtClaimsMap = map[string]interface{}{
 	"exp": jwtClaims.ExpiresAt.Unix(),
 	"jti": jwtClaims.JTI,
 	"scp": []string{"email", "offline"},
+	"scope": []string{"email", "offline"},
 	"foo": jwtClaims.Extra["foo"],
 	"baz": jwtClaims.Extra["baz"],
+	"rid": "foo",
 }
 
 func TestClaimAddGetString(t *testing.T) {

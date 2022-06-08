@@ -42,6 +42,9 @@ func (f *Fosite) writeJsonError(rw http.ResponseWriter, requester AccessRequeste
 		rfcerr = rfcerr.WithLocalizer(f.MessageCatalog, getLangFromRequester(requester))
 	}
 
+	if rfcerr.ErrorField == "invalid_token" {
+		rfcerr.CodeField = http.StatusUnauthorized
+	}
 	js, err := json.Marshal(rfcerr)
 	if err != nil {
 		if f.SendDebugMessagesToClients {

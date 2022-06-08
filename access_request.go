@@ -41,3 +41,12 @@ func NewAccessRequest(session Session) *AccessRequest {
 func (a *AccessRequest) GetGrantTypes() Arguments {
 	return a.GrantTypes
 }
+
+func (a *AccessRequest) GetClient() Client {
+	return a.Client
+}
+
+// VN-68161
+func (a *AccessRequest) GetRequest() Request {
+	return a.Request
+}
