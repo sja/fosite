@@ -56,7 +56,7 @@ type DefaultSession struct {
 	ExpiresAt map[fosite.TokenType]time.Time `json:"expires_at"`
 	Username  string                         `json:"username"`
 	Subject   string                         `json:"subject"`
- 	Rid       string 						 `json:"rid"`
+	Rid       string                         `json:"rid,omitempty"`
 }
 
 func NewDefaultSession() *DefaultSession {

@@ -43,7 +43,7 @@ type IDTokenClaims struct {
 	AuthenticationMethodsReferences     []string               `json:"amr"`
 	CodeHash                            string                 `json:"c_hash"`
 	Extra                               map[string]interface{} `json:"ext"`
-	Rid                                 string                 `json:"rid"`
+	Rid                                 string                 `json:"rid,omitempty"`
 }
 
 // ToMap will transform the headers to a map structure
@@ -130,7 +130,7 @@ func (c *IDTokenClaims) ToMap() map[string]interface{} {
 
 	if len(c.Rid) > 0 {
 		ret["rid"] = c.Rid
-	//VN-69563
+		//VN-69563
 	} else if c.Extra != nil {
 		if val, ok := c.Extra["foo"]; ok {
 			ret["rid"] = val
