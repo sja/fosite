@@ -200,14 +200,6 @@ func (c *AuthorizeExplicitGrantHandler) PopulateTokenEndpointResponse(ctx contex
 		responder.SetExtra("refresh_token", refresh)
 	}
 
-	// Override: If Hydra Client AccessTokenTTL is set, use that
-	// Otherwise, use the already set expiry from above
-	atLifespanByClient := time.Duration(requester.GetClient().GetAccessTokenTTL()) * time.Minute
-	if atLifespanByClient > 0 {
-		atExpiresIn := getExpiryDurationFromToken(access, atLifespanByClient)
-		responder.SetExpiresIn(atExpiresIn)
-	}
-
 	if err = storage.MaybeCommitTx(ctx, c.CoreStorage); err != nil {
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
 	}

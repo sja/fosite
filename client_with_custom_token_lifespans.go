@@ -74,7 +74,8 @@ func (c *DefaultClientWithCustomTokenLifespans) SetTokenLifespans(lifespans *Cli
 // GetEffectiveLifespan either maps GrantType x TokenType to the client's configured lifespan, or returns the fallback value.
 func (c *DefaultClientWithCustomTokenLifespans) GetEffectiveLifespan(gt GrantType, tt TokenType, fallback time.Duration) time.Duration {
 	if c.TokenLifespans == nil {
-		return fallback
+		return c.getTTLFromClientMetadata(tt, fallback)
+		//return fallback
 	}
 	var cl *time.Duration
 	if gt == GrantTypeAuthorizationCode {
@@ -119,4 +120,26 @@ func (c *DefaultClientWithCustomTokenLifespans) GetEffectiveLifespan(gt GrantTyp
 		return fallback
 	}
 	return *cl
+}
+
+func (c *DefaultClientWithCustomTokenLifespans) getTTLFromClientMetadata(tt TokenType, fallback time.Duration) time.Duration {
+	if tt == AccessToken {
+		return c.getAccessTTLFromClientMetadata(fallback)
+	} else if tt == IDToken {
+		return c.getIdTTLFromClientMetadata(fallback)
+	}
+	return fallback
+}
+
+func (c *DefaultClientWithCustomTokenLifespans) getAccessTTLFromClientMetadata(fallback time.Duration) time.Duration {
+	if c.Metadata != nil && c.Metadata.AccessTokenTTL > 0 {
+		return time.Duration(c.Metadata.AccessTokenTTL) * time.Second
+	}
+	return fallback
+}
+func (c *DefaultClientWithCustomTokenLifespans) getIdTTLFromClientMetadata(fallback time.Duration) time.Duration {
+	if c.Metadata != nil && c.Metadata.IDTokenTTL > 0 {
+		return time.Duration(c.Metadata.IDTokenTTL) * time.Second
+	}
+	return fallback
 }

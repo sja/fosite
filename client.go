@@ -53,12 +53,6 @@ type Client interface {
 	// GetAudience returns the allowed audience(s) for this client.
 	GetAudience() Arguments
 
-	// GetAccessTokenTTL returns access token ttl for this client.
-	GetAccessTokenTTL() int32
-
-	// GetIDTokenTTL returns id token ttl for this client.
-	GetIDTokenTTL() int32
-
 	//VN-68828
 	//GetMinimumScopes returns the minimum scopes if the client has metadata.internal_client=true.
 	//Returns nil if client isn't internal VN-68828
@@ -110,8 +104,10 @@ type ResponseModeClient interface {
 
 //VN-68828
 type Metadata struct {
-	InternalClient bool `json:"internal_client"`
-	DefaultScopes []string 	`json:"default_scopes"`
+	InternalClient bool     `json:"internal_client"`
+	DefaultScopes  []string `json:"default_scopes"`
+	AccessTokenTTL int32    `json:"access_token_ttl"`
+	IDTokenTTL     int32    `json:"id_token_ttl"`
 }
 
 // DefaultClient is a simple default implementation of the Client interface.
@@ -125,10 +121,8 @@ type DefaultClient struct {
 	Scopes         []string `json:"scopes"`
 	Audience       []string `json:"audience"`
 	Public         bool     `json:"public"`
-	AccessTokenTTL int32    `json:"access_token_ttl"`
-	IDTokenTTL     int32    `json:"id_token_ttl"`
 	//VN-68828
-	Metadata *Metadata    	`json:"metadata"`
+	Metadata *Metadata `json:"metadata"`
 }
 
 type DefaultOpenIDConnectClient struct {
@@ -172,14 +166,6 @@ func (c *DefaultClient) GetRotatedHashes() [][]byte {
 
 func (c *DefaultClient) GetScopes() Arguments {
 	return c.Scopes
-}
-
-func (c *DefaultClient) GetAccessTokenTTL() int32 {
-	return c.AccessTokenTTL
-}
-
-func (c *DefaultClient) GetIDTokenTTL() int32 {
-	return c.IDTokenTTL
 }
 
 func (c *DefaultClient) GetGrantTypes() Arguments {

@@ -221,11 +221,6 @@ func (h DefaultStrategy) GenerateIDToken(ctx context.Context, lifespan time.Dura
 		claims.ExpiresAt = time.Now().UTC().Add(lifespan)
 	}
 
-	clientIDTokenTTL := requester.GetClient().GetIDTokenTTL()
-	if clientIDTokenTTL != 0 {
-		idTokenTTL := time.Duration(clientIDTokenTTL) * time.Minute
-		claims.ExpiresAt = time.Now().UTC().Add(idTokenTTL)
-	}
 	if claims.ExpiresAt.Before(time.Now().UTC()) {
 		return "", errorsx.WithStack(fosite.ErrServerError.WithDebug("Failed to generate id token because expiry claim can not be in the past."))
 	}

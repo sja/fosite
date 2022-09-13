@@ -138,8 +138,7 @@ var jwtValidCaseWithRefreshExpiry = func(tokenType fosite.TokenType) *fosite.Req
 var jwtValidCaseWithClientAccessTokenTTL = func(tokenType fosite.TokenType) *fosite.Request {
 	r := &fosite.Request{
 		Client: &fosite.DefaultClient{
-			Secret:         []byte("foobarfoobarfoobarfoobar"),
-			AccessTokenTTL: 20,
+			Secret: []byte("foobarfoobarfoobarfoobar"),
 		},
 		Session: &JWTSession{
 			JWTClaims: &jwt.JWTClaims{

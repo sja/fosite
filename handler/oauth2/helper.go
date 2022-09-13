@@ -23,9 +23,9 @@ package oauth2
 
 import (
 	"context"
-	"time"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ory/fosite"
+	"time"
 )
 
 type HandleHelper struct {
@@ -48,14 +48,6 @@ func (h *HandleHelper) IssueAccessToken(ctx context.Context, defaultLifespan tim
 	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, defaultLifespan, time.Now().UTC()))
 	responder.SetScopes(requester.GetGrantedScopes())
 
-	// Override: If Hydra Client defined an AccessToken TTL, use that.
-	// Otherwise, let the expiry which was already set above.
-	clientAccessTokenLifetime := time.Duration(requester.GetClient().GetAccessTokenTTL()) * time.Minute
-	if clientAccessTokenLifetime > 0 {
-		accessTokenExpiry := getExpiryDurationFromToken(token, clientAccessTokenLifetime)
-		responder.SetExpiresIn(accessTokenExpiry)
-	}
-
 	return nil
 }
 
@@ -70,7 +62,7 @@ func getExpiresIn(r fosite.Requester, key fosite.TokenType, defaultLifespan time
 	return sessionDuration
 }
 
-func getExpiryDurationFromToken(tokenString string, defaultLifespan time.Duration) time.Duration{
+func getExpiryDurationFromToken(tokenString string, defaultLifespan time.Duration) time.Duration {
 	claims := jwt.MapClaims{}
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(accessToken *jwt.Token) (interface{}, error) {
 		return "", nil
@@ -99,4 +91,3 @@ func getExpiryDurationFromToken(tokenString string, defaultLifespan time.Duratio
 	return tokenExpiryDuration
 
 }
-

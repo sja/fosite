@@ -147,19 +147,20 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 	} else if jwtSession.GetJWTClaims() == nil {
 		return "", "", errors.New("GetTokenClaims() must not be nil")
 	} else {
-		accessExpiry := jwtSession.GetExpiresAt(tokenType)
-		clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
+		//accessExpiry := jwtSession.GetExpiresAt(tokenType)
+		/*clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
 		if clientAccessTokenTTL != 0 {
 			accessExpiry = time.Now().Add(time.Duration(clientAccessTokenTTL) * time.Minute)
-		}
+		}*/
 
 		// VN-68161
 		grantType := requester.GetRequest().Form.Get("grant_type")
 		claims := jwtSession.GetJWTClaims()
-
+		// TODO If a grantType was set, modify claims for Accountweb. Above, also the expiry was modified, this is
+		// TODO now hopefully already correct when calling this function.
 		if grantType != "" {
 			claims.WithAccountweb(
-				accessExpiry,
+				jwtSession.GetExpiresAt(tokenType),
 				requester.GetGrantedScopes(),
 				requester.GetGrantedAudience(),
 				grantType,
@@ -167,7 +168,7 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 			)
 		} else {
 			claims.With(
-				accessExpiry,
+				jwtSession.GetExpiresAt(tokenType),
 				requester.GetGrantedScopes(),
 				requester.GetGrantedAudience(),
 			)

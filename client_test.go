@@ -36,8 +36,6 @@ func TestDefaultClient(t *testing.T) {
 		ResponseTypes:  []string{"foo", "bar"},
 		GrantTypes:     []string{"foo", "bar"},
 		Scopes:         []string{"fooscope"},
-		AccessTokenTTL: 10,
-		IDTokenTTL:     10,
 	}
 
 	assert.Equal(t, sc.ID, sc.GetID())
@@ -47,8 +45,6 @@ func TestDefaultClient(t *testing.T) {
 	assert.EqualValues(t, sc.ResponseTypes, sc.GetResponseTypes())
 	assert.EqualValues(t, sc.GrantTypes, sc.GetGrantTypes())
 	assert.EqualValues(t, sc.Scopes, sc.GetScopes())
-	assert.EqualValues(t, sc.AccessTokenTTL, sc.GetAccessTokenTTL())
-	assert.EqualValues(t, sc.IDTokenTTL, sc.GetIDTokenTTL())
 
 	sc.GrantTypes = []string{}
 	sc.ResponseTypes = []string{}

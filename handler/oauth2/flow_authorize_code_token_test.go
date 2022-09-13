@@ -136,10 +136,17 @@ func TestAuthorizeCode_PopulateTokenEndpointResponse(t *testing.T) {
 						GrantTypes: fosite.Arguments{"authorization_code"},
 						Request: fosite.Request{
 							Form: url.Values{},
-							Client: &fosite.DefaultClient{
-								GrantTypes:     fosite.Arguments{"authorization_code", "refresh_token"},
-								AccessTokenTTL: 10,
-								IDTokenTTL:     10,
+							Client: &fosite.DefaultClientWithCustomTokenLifespans{
+								DefaultClient: &fosite.DefaultClient{
+									GrantTypes: fosite.Arguments{"authorization_code", "refresh_token"},
+									Metadata: &fosite.Metadata{
+										InternalClient: false,
+										DefaultScopes:  nil,
+										AccessTokenTTL: 600,
+										IDTokenTTL:     600,
+									},
+								},
+								TokenLifespans: nil,
 							},
 							GrantedScope: fosite.Arguments{"foo", "offline"},
 							Session:      &fosite.DefaultSession{},
