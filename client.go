@@ -180,12 +180,10 @@ func (c *DefaultClient) GetScopes() Arguments {
 
 func (c *DefaultClient) GetAccessTokenTTL() time.Duration {
 	return time.Duration(c.AccessTokenTTL) * time.Minute
-	//return c.AccessTokenTTL
 }
 
 func (c *DefaultClient) GetIDTokenTTL() time.Duration {
 	return time.Duration(c.IDTokenTTL) * time.Minute
-	//return c.IDTokenTTL
 }
 
 func (c *DefaultClient) GetGrantTypes() Arguments {
