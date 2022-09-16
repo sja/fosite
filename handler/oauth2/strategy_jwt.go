@@ -147,11 +147,6 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 	} else if jwtSession.GetJWTClaims() == nil {
 		return "", "", errors.New("GetTokenClaims() must not be nil")
 	} else {
-		//accessExpiry := jwtSession.GetExpiresAt(tokenType)
-		/*clientAccessTokenTTL := requester.GetClient().GetAccessTokenTTL()
-		if clientAccessTokenTTL != 0 {
-			accessExpiry = time.Now().Add(time.Duration(clientAccessTokenTTL) * time.Minute)
-		}*/
 
 		// VN-68161
 		grantType := requester.GetRequest().Form.Get("grant_type")

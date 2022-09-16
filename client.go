@@ -22,6 +22,8 @@
 package fosite
 
 import (
+	"time"
+
 	jose "gopkg.in/square/go-jose.v2"
 )
 
@@ -52,6 +54,12 @@ type Client interface {
 
 	// GetAudience returns the allowed audience(s) for this client.
 	GetAudience() Arguments
+
+	// GetAccessTokenTTL returns access token ttl for this client.
+	GetAccessTokenTTL() time.Duration
+
+	// GetIDTokenTTL returns id token ttl for this client.
+	GetIDTokenTTL() time.Duration
 
 	//VN-68828
 	//GetMinimumScopes returns the minimum scopes if the client has metadata.internal_client=true.
@@ -102,7 +110,7 @@ type ResponseModeClient interface {
 	GetResponseModes() []ResponseModeType
 }
 
-//VN-68828
+// VN-68828
 type Metadata struct {
 	InternalClient bool     `json:"internal_client"`
 	DefaultScopes  []string `json:"default_scopes"`
@@ -121,6 +129,8 @@ type DefaultClient struct {
 	Scopes         []string `json:"scopes"`
 	Audience       []string `json:"audience"`
 	Public         bool     `json:"public"`
+	AccessTokenTTL int32    `json:"access_token_ttl"`
+	IDTokenTTL     int32    `json:"id_token_ttl"`
 	//VN-68828
 	Metadata *Metadata `json:"metadata"`
 }
@@ -168,6 +178,16 @@ func (c *DefaultClient) GetScopes() Arguments {
 	return c.Scopes
 }
 
+func (c *DefaultClient) GetAccessTokenTTL() time.Duration {
+	return time.Duration(c.AccessTokenTTL) * time.Minute
+	//return c.AccessTokenTTL
+}
+
+func (c *DefaultClient) GetIDTokenTTL() time.Duration {
+	return time.Duration(c.IDTokenTTL) * time.Minute
+	//return c.IDTokenTTL
+}
+
 func (c *DefaultClient) GetGrantTypes() Arguments {
 	// https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	//
@@ -192,7 +212,7 @@ func (c *DefaultClient) GetResponseTypes() Arguments {
 	return Arguments(c.ResponseTypes)
 }
 
-//VN-68828
+// VN-68828
 func (c *DefaultClient) GetMinimumScopes() []string {
 
 	if c.Metadata == nil {
@@ -205,7 +225,7 @@ func (c *DefaultClient) GetMinimumScopes() []string {
 	return nil
 }
 
-//VN-68828
+// VN-68828
 func (c *DefaultClient) IsInternalClient() bool {
 	if c.Metadata == nil {
 		return false
