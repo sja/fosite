@@ -214,6 +214,8 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 		return errorsx.WithStack(fosite.ErrUnknownRequest)
 	}
 
+	atLifespan := fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeRefreshToken, fosite.AccessToken, c.AccessTokenLifespan)
+	requester.GetSession().SetExpiresAt(fosite.TokenType("access_token"), time.Now().UTC().Add(atLifespan).Round(time.Second))
 	accessToken, accessSignature, err := c.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
 	if err != nil {
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
@@ -265,7 +267,7 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 
 	responder.SetAccessToken(accessToken)
 	responder.SetTokenType("bearer")
-	atLifespan := fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeRefreshToken, fosite.AccessToken, c.AccessTokenLifespan)
+	atLifespan = fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeRefreshToken, fosite.AccessToken, c.AccessTokenLifespan)
 	atLifespan = getExpiryDurationFromToken(accessToken, atLifespan)
 	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, atLifespan, time.Now().UTC()))
 	responder.SetScopes(requester.GetGrantedScopes())
@@ -280,14 +282,13 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 
 // Reference: https://tools.ietf.org/html/rfc6819#section-5.2.2.3
 //
-//     The basic idea is to change the refresh token
-//     value with every refresh request in order to detect attempts to
-//     obtain access tokens using old refresh tokens.  Since the
-//     authorization server cannot determine whether the attacker or the
-//     legitimate client is trying to access, in case of such an access
-//     attempt the valid refresh token and the access authorization
-//     associated with it are both revoked.
-//
+//	The basic idea is to change the refresh token
+//	value with every refresh request in order to detect attempts to
+//	obtain access tokens using old refresh tokens.  Since the
+//	authorization server cannot determine whether the attacker or the
+//	legitimate client is trying to access, in case of such an access
+//	attempt the valid refresh token and the access authorization
+//	associated with it are both revoked.
 func (c *RefreshTokenGrantHandler) handleRefreshTokenReuse(ctx context.Context, signature string, req fosite.Requester) (err error) {
 	ctx, err = storage.MaybeBeginTx(ctx, c.TokenRevocationStorage)
 	if err != nil {
