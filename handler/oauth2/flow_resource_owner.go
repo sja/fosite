@@ -43,6 +43,7 @@ type ResourceOwnerPasswordCredentialsGrantHandler struct {
 	ScopeStrategy            fosite.ScopeStrategy
 	AudienceMatchingStrategy fosite.AudienceMatchingStrategy
 	RefreshTokenScopes       []string
+	IdTokenLifespan          time.Duration
 
 	*HandleHelper
 }
