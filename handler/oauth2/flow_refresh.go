@@ -23,10 +23,12 @@ package oauth2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/opentracing/opentracing-go"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,14 +75,17 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	signature := c.RefreshTokenStrategy.RefreshTokenSignature(refresh)
 
 	originalRequest, err := c.TokenRevocationStorage.GetRefreshTokenSession(ctx, signature, request.GetSession())
-	/*if errors.Is(err, fosite.ErrInactiveToken) {
-		// Detected refresh token reuse
-		if rErr := c.handleRefreshTokenReuse(ctx, signature, originalRequest); rErr != nil {
-			return errorsx.WithStack(fosite.ErrServerError.WithWrap(rErr).WithDebug(rErr.Error()))
-		}
+	/*
+		// VN-78222 Token Reuse Handling was disabled because we have many concurrent request to hydra from concurrent calls
+		issued by Browsers and ssi.
+		if errors.Is(err, fosite.ErrInactiveToken) {
+			// Detected refresh token reuse
+			if rErr := c.handleRefreshTokenReuse(ctx, signature, originalRequest); rErr != nil {
+				return errorsx.WithStack(fosite.ErrServerError.WithWrap(rErr).WithDebug(rErr.Error()))
+			}
 
-		return errorsx.WithStack(fosite.ErrInactiveToken.WithWrap(err).WithDebug(err.Error()))
-	} */
+			return errorsx.WithStack(fosite.ErrInactiveToken.WithWrap(err).WithDebug(err.Error()))
+		} */
 	if errors.Is(err, fosite.ErrInactiveToken) {
 		traceHandlingResult(ctx, "reused-ignored")
 		err = nil // Fast forward to c.RefreshTokenStrategy.ValidateRefreshToken
@@ -88,7 +93,7 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	if errors.Is(err, fosite.ErrNotFound) {
 		//return errorsx.WithStack(fosite.ErrInvalidGrant.WithWrap(err).WithDebugf("The refresh token has not been found: %s", err.Error()))
 		traceHandlingResult(ctx, "not-found")
-		return c.validateAcRefreshtoken(refresh, request)
+		return c.validateAcRefreshtoken(ctx, refresh, request)
 	} else if err != nil {
 		traceHandlingResult(ctx, "unhandled-error")
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
@@ -96,20 +101,24 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 		// The authorization server MUST ... validate the refresh token.
 		// This needs to happen after store retrieval for the session to be hydrated properly
 		if errors.Is(err, fosite.ErrTokenExpired) {
+			traceHandlingResult(ctx, "expired")
 			return errorsx.WithStack(fosite.ErrInvalidGrant.WithWrap(err).WithDebug(err.Error()))
 		}
+		traceHandlingResult(ctx, "validate failed")
 		return errorsx.WithStack(fosite.ErrInvalidRequest.WithWrap(err).WithDebug(err.Error()))
 	}
 
 	if !(len(c.RefreshTokenScopes) == 0 || originalRequest.GetGrantedScopes().HasOneOf(c.RefreshTokenScopes...)) {
 		scopeNames := strings.Join(c.RefreshTokenScopes, " or ")
 		hint := fmt.Sprintf("The OAuth 2.0 Client was not granted scope %s and may thus not perform the 'refresh_token' authorization grant.", scopeNames)
+		traceHandlingResult(ctx, "refresh scope not granted")
 		return errorsx.WithStack(fosite.ErrScopeNotGranted.WithHint(hint))
 
 	}
 
 	// The authorization server MUST ... and ensure that the refresh token was issued to the authenticated client
 	if originalRequest.GetClient().GetID() != request.GetClient().GetID() {
+		traceHandlingResult(ctx, "Client does not match")
 		return errorsx.WithStack(fosite.ErrInvalidGrant.WithHint("The OAuth 2.0 Client ID from this request does not match the ID during the initial token issuance."))
 	}
 
@@ -119,12 +128,14 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 
 	for _, scope := range originalRequest.GetGrantedScopes() {
 		if !c.ScopeStrategy(request.GetClient().GetScopes(), scope) {
+			traceHandlingResult(ctx, "scope not allowed by client")
 			return errorsx.WithStack(fosite.ErrInvalidScope.WithHintf("The OAuth 2.0 Client is not allowed to request scope '%s'.", scope))
 		}
 		request.GrantScope(scope)
 	}
 
 	if err := c.AudienceMatchingStrategy(request.GetClient().GetAudience(), originalRequest.GetGrantedAudience()); err != nil {
+		traceHandlingResult(ctx, "audience does not match")
 		return err
 	}
 
@@ -139,18 +150,22 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	if rtLifespan > -1 {
 		request.GetSession().SetExpiresAt(fosite.RefreshToken, time.Now().UTC().Add(rtLifespan).Round(time.Second))
 	}
-
+	traceHandlingResult(ctx, "success")
 	return nil
 }
 
 func traceHandlingResult(ctx context.Context, s string) {
+	amendSpan(ctx, "refresh_token", s)
+}
+
+func amendSpan(ctx context.Context, key, value string) {
 	existingSpan := opentracing.SpanFromContext(ctx)
 	if existingSpan != nil {
-		existingSpan.SetTag("refresh_token", s)
+		existingSpan.SetTag(key, value)
 	}
 }
 
-func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request fosite.AccessRequester) error {
+func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(ctx context.Context, token string, request fosite.AccessRequester) error {
 	var headers map[string]interface{}
 	var rfClaims *jwt.MapClaims
 	var auth []string
@@ -194,7 +209,27 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request 
 		return verifyKey, nil
 	})
 	if err != nil {
+		traceHandlingResult(ctx, "not-found: invalid")
 		return errorsx.WithStack(fosite.ErrInvalidTokenFormat.WithWrap(err).WithDebugf("Cannot convert access token to JSON"))
+	}
+
+	// We add Issuer and expire date
+	if iss, ok := (*rfClaims)["iss"].(string); ok {
+		amendSpan(ctx, "issuer", iss)
+	}
+
+	switch exp := (*rfClaims)["exp"].(type) {
+	case float64:
+		amendSpan(ctx, "exp", strconv.FormatInt(int64(exp), 10))
+	case json.Number:
+		amendSpan(ctx, "exp", exp.String())
+	}
+
+	switch iat := (*rfClaims)["iat"].(type) {
+	case float64:
+		amendSpan(ctx, "iat", strconv.FormatInt(int64(iat), 10))
+	case json.Number:
+		amendSpan(ctx, "iat", iat.String())
 	}
 
 	// Create a new session as there is not original request in hydra becouse original request were created in account web
