@@ -297,8 +297,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 						assert.Equal(t, time.Now().Add(time.Hour).UTC().Round(time.Second), areq.GetSession().GetExpiresAt(fosite.AccessToken))
 						assert.Equal(t, time.Now().Add(time.Hour).UTC().Round(time.Second), areq.GetSession().GetExpiresAt(fosite.RefreshToken))
 					},
-				},
-				/*{
+				}, {
 					description: "should deny access on token reuse",
 					setup: func() {
 						areq.GrantTypes = fosite.Arguments{"refresh_token"}
@@ -326,8 +325,8 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 						err = store.RevokeRefreshToken(nil, req.ID)
 						require.NoError(t, err)
 					},
-					expectErr: fosite.ErrInactiveToken,
-				},*/
+					expectErr: nil, // Vorwerk: skip refresh-reuse detection, was: fosite.ErrInactiveToken,
+				},
 			} {
 				t.Run("case="+c.description, func(t *testing.T) {
 					h = RefreshTokenGrantHandler{
@@ -344,7 +343,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 					areq.Form = url.Values{}
 					c.setup()
 
-					err := h.HandleTokenEndpointRequest(context.Background(), areq)
+					err := h.HandleTokenEndpointRequest(context.TODO(), areq)
 					if c.expectErr != nil {
 						require.EqualError(t, err, c.expectErr.Error())
 					} else {
