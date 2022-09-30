@@ -344,7 +344,7 @@ func TestRefreshFlow_HandleTokenEndpointRequest(t *testing.T) {
 					areq.Form = url.Values{}
 					c.setup()
 
-					err := h.HandleTokenEndpointRequest(nil, areq)
+					err := h.HandleTokenEndpointRequest(context.Background(), areq)
 					if c.expectErr != nil {
 						require.EqualError(t, err, c.expectErr.Error())
 					} else {
