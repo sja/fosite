@@ -216,6 +216,8 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(ctx context.Context, t
 	// We add Issuer and expire date
 	if iss, ok := (*rfClaims)["iss"].(string); ok {
 		amendSpan(ctx, "issuer", iss)
+	} else {
+		amendSpan(ctx, "issuer", "not given - perhaps marCoSS")
 	}
 
 	switch exp := (*rfClaims)["exp"].(type) {
@@ -230,6 +232,13 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(ctx context.Context, t
 		amendSpan(ctx, "iat", strconv.FormatInt(int64(iat), 10))
 	case json.Number:
 		amendSpan(ctx, "iat", iat.String())
+	}
+
+	switch authTime := (*rfClaims)["auth_time"].(type) {
+	case float64:
+		amendSpan(ctx, "auth_time", strconv.FormatInt(int64(authTime), 10))
+	case json.Number:
+		amendSpan(ctx, "auth_time", authTime.String())
 	}
 
 	// Create a new session as there is not original request in hydra becouse original request were created in account web
@@ -253,7 +262,7 @@ func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(ctx context.Context, t
 	if sub, ok := (*rfClaims)["sub"].(string); ok {
 		session.Subject = sub
 	}
-
+	traceHandlingResult(ctx, "not-found: success")
 	request.SetSession(session)
 	return nil
 }
