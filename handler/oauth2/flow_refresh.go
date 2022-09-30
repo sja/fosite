@@ -24,6 +24,7 @@ package oauth2
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -72,17 +73,24 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	signature := c.RefreshTokenStrategy.RefreshTokenSignature(refresh)
 
 	originalRequest, err := c.TokenRevocationStorage.GetRefreshTokenSession(ctx, signature, request.GetSession())
-	if errors.Is(err, fosite.ErrInactiveToken) {
+	/*if errors.Is(err, fosite.ErrInactiveToken) {
 		// Detected refresh token reuse
 		if rErr := c.handleRefreshTokenReuse(ctx, signature, originalRequest); rErr != nil {
 			return errorsx.WithStack(fosite.ErrServerError.WithWrap(rErr).WithDebug(rErr.Error()))
 		}
 
 		return errorsx.WithStack(fosite.ErrInactiveToken.WithWrap(err).WithDebug(err.Error()))
-	} else if errors.Is(err, fosite.ErrNotFound) {
+	} */
+	if errors.Is(err, fosite.ErrInactiveToken) {
+		traceHandlingResult(ctx, "reused-ignored")
+		err = nil // Fast forward to c.RefreshTokenStrategy.ValidateRefreshToken
+	}
+	if errors.Is(err, fosite.ErrNotFound) {
 		//return errorsx.WithStack(fosite.ErrInvalidGrant.WithWrap(err).WithDebugf("The refresh token has not been found: %s", err.Error()))
+		traceHandlingResult(ctx, "not-found")
 		return c.validateAcRefreshtoken(refresh, request)
 	} else if err != nil {
+		traceHandlingResult(ctx, "unhandled-error")
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
 	} else if err := c.RefreshTokenStrategy.ValidateRefreshToken(ctx, originalRequest, refresh); err != nil {
 		// The authorization server MUST ... validate the refresh token.
@@ -133,6 +141,13 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	}
 
 	return nil
+}
+
+func traceHandlingResult(ctx context.Context, s string) {
+	existingSpan := opentracing.SpanFromContext(ctx)
+	if existingSpan != nil {
+		existingSpan.SetTag("refresh_token", s)
+	}
 }
 
 func (c *RefreshTokenGrantHandler) validateAcRefreshtoken(token string, request fosite.AccessRequester) error {
