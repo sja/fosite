@@ -75,22 +75,17 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	signature := c.RefreshTokenStrategy.RefreshTokenSignature(refresh)
 
 	originalRequest, err := c.TokenRevocationStorage.GetRefreshTokenSession(ctx, signature, request.GetSession())
-	/*
-		// VN-78222 Token Reuse Handling was disabled because we have many concurrent request to hydra from concurrent calls
-		issued by Browsers and ssi.
-		if errors.Is(err, fosite.ErrInactiveToken) {
-			// Detected refresh token reuse
-			if rErr := c.handleRefreshTokenReuse(ctx, signature, originalRequest); rErr != nil {
-				return errorsx.WithStack(fosite.ErrServerError.WithWrap(rErr).WithDebug(rErr.Error()))
-			}
 
-			return errorsx.WithStack(fosite.ErrInactiveToken.WithWrap(err).WithDebug(err.Error()))
-		} */
+	// VN-78222 Token Reuse Handling was disabled because we have many concurrent request to hydra from concurrent calls
+	//issued by Browsers and ssi.
 	if errors.Is(err, fosite.ErrInactiveToken) {
-		traceHandlingResult(ctx, "reused-ignored")
-		err = nil // Fast forward to c.RefreshTokenStrategy.ValidateRefreshToken
-	}
-	if errors.Is(err, fosite.ErrNotFound) {
+		// Detected refresh token reuse
+		if rErr := c.handleRefreshTokenReuse(ctx, signature, originalRequest); rErr != nil {
+			return errorsx.WithStack(fosite.ErrServerError.WithWrap(rErr).WithDebug(rErr.Error()))
+		}
+
+		return errorsx.WithStack(fosite.ErrInactiveToken.WithWrap(err).WithDebug(err.Error()))
+	} else if errors.Is(err, fosite.ErrNotFound) {
 		//return errorsx.WithStack(fosite.ErrInvalidGrant.WithWrap(err).WithDebugf("The refresh token has not been found: %s", err.Error()))
 		traceHandlingResult(ctx, "not-found")
 		return c.validateAcRefreshtoken(ctx, refresh, request)
@@ -273,8 +268,6 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 		return errorsx.WithStack(fosite.ErrUnknownRequest)
 	}
 
-	atLifespan := fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeRefreshToken, fosite.AccessToken, c.AccessTokenLifespan)
-	requester.GetSession().SetExpiresAt(fosite.TokenType("access_token"), time.Now().UTC().Add(atLifespan).Round(time.Second))
 	accessToken, accessSignature, err := c.AccessTokenStrategy.GenerateAccessToken(ctx, requester)
 	if err != nil {
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
@@ -300,20 +293,28 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 	database... We keep the revoke invokations for tokens issued in migrated verticals by hydra
 	*/
 	ts, err := c.TokenRevocationStorage.GetRefreshTokenSession(ctx, signature, nil)
-	if err != nil {
-		// return c.handleRefreshTokenEndpointStorageError(ctx, true, err)
-	} else if err := c.TokenRevocationStorage.RevokeAccessToken(ctx, ts.GetID()); err != nil {
-		// return c.handleRefreshTokenEndpointStorageError(ctx, true, err)
-	} else if err := c.TokenRevocationStorage.RevokeRefreshTokenMaybeGracePeriod(ctx, ts.GetID(), signature); err != nil {
-		// return c.handleRefreshTokenEndpointStorageError(ctx, true, err)
+	tokenFound := !errors.Is(err, fosite.ErrNotFound)
+	if tokenFound {
+		if err != nil {
+			return err
+		} else if err := c.TokenRevocationStorage.RevokeAccessToken(ctx, ts.GetID()); err != nil {
+			// RefreshTokenSession is available, so Hydra was the token issuer.
+			// If we cannot revoke Hydras access token, this is a real error:
+			return err
+		}
+
+		if err := c.TokenRevocationStorage.RevokeRefreshTokenMaybeGracePeriod(ctx, ts.GetID(), signature); err != nil {
+			return err
+		}
 	}
 
 	storeReq := requester.Sanitize([]string{})
 
-	// TODO Adjust after migration. when ts is nil it is becaouse the refrest token was issued by account then we set some id in the request
-	storeReq.SetID(uuid.NewV4().String())
-	if ts != nil {
+	// TODO Remove self-generated id after migration
+	if tokenFound {
 		storeReq.SetID(ts.GetID())
+	} else {
+		storeReq.SetID(uuid.NewV4().String())
 	}
 
 	if err = c.TokenRevocationStorage.CreateAccessTokenSession(ctx, accessSignature, storeReq); err != nil {
@@ -324,19 +325,18 @@ func (c *RefreshTokenGrantHandler) PopulateTokenEndpointResponse(ctx context.Con
 		return err
 	}
 
-	responder.SetAccessToken(accessToken)
-	responder.SetTokenType("bearer")
-	atLifespan = fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeRefreshToken, fosite.AccessToken, c.AccessTokenLifespan)
-	atLifespan = getExpiryDurationFromToken(accessToken, atLifespan)
-	responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, atLifespan, time.Now().UTC()))
-	responder.SetScopes(requester.GetGrantedScopes())
-	responder.SetExtra("refresh_token", refreshToken)
-
 	if err = storage.MaybeCommitTx(ctx, c.TokenRevocationStorage); err != nil {
 		return err
+	} else {
+		responder.SetAccessToken(accessToken)
+		responder.SetTokenType("bearer")
+		atLifespan := fosite.GetEffectiveLifespan(requester.GetClient(), fosite.GrantTypeRefreshToken, fosite.AccessToken, c.AccessTokenLifespan)
+		atLifespan = getExpiryDurationFromToken(accessToken, atLifespan)
+		responder.SetExpiresIn(getExpiresIn(requester, fosite.AccessToken, atLifespan, time.Now().UTC()))
+		responder.SetScopes(requester.GetGrantedScopes())
+		responder.SetExtra("refresh_token", refreshToken)
+		return nil
 	}
-
-	return nil
 }
 
 // Reference: https://tools.ietf.org/html/rfc6819#section-5.2.2.3
